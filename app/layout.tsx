@@ -1,31 +1,32 @@
-import type { Metadata } from 'next'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import './globals.css'
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: "Little Scholars Preschool - Navi Mumbai",
+  description:
+    "Nurturing young minds with creativity, care, and confidence. Building the foundation for lifelong learning at Little Scholars Preschool in Navi Mumbai.",
+  keywords: "preschool, kindergarten, early childhood education, Navi Mumbai, Little Scholars",
+  authors: [{ name: "Little Scholars Preschool" }],
+  openGraph: {
+    title: "Little Scholars Preschool - Navi Mumbai",
+    description: "Quality early childhood education in Navi Mumbai",
+    type: "website",
+  },
+    generator: 'v0.app'
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en">
-      <head>
-        <style>{`
-html {
-  font-family: ${GeistSans.style.fontFamily};
-  --font-sans: ${GeistSans.variable};
-  --font-mono: ${GeistMono.variable};
-}
-        `}</style>
-      </head>
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }
