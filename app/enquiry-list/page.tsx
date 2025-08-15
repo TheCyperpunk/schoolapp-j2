@@ -9,7 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { getEnquiries, signOut, getCurrentSession, onAuthStateChange, type Enquiry } from "@/lib/supabase"
+import {
+  getEnquiries,
+  signOut,
+  getCurrentSession,
+  getCurrentUser,
+  onAuthStateChange,
+  type Enquiry,
+} from "@/lib/supabase"
 
 export default function EnquiryListPage() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
@@ -18,7 +25,7 @@ export default function EnquiryListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState("")
-  const [authChecked, setAuthChecked] = useState(false)
+  const [userEmail, setUserEmail] = useState("")
   const router = useRouter()
 
   useEffect(() => {
@@ -26,20 +33,21 @@ export default function EnquiryListPage() {
       try {
         console.log("Checking authentication...")
         const session = await getCurrentSession()
-        console.log("Session:", session)
+        const user = await getCurrentUser()
 
-        if (!session) {
-          console.log("No session found, redirecting to login")
+        console.log("Session:", session)
+        console.log("User:", user)
+
+        if (!session || !user) {
+          console.log("No session or user found, redirecting to login")
           router.push("/login")
           return
         }
 
-        console.log("User authenticated:", session.user.email)
-        setAuthChecked(true)
+        setUserEmail(user.email || "")
         await loadEnquiries()
       } catch (error) {
         console.error("Auth check error:", error)
-        setError("Authentication failed. Please login again.")
         router.push("/login")
       }
     }
@@ -64,11 +72,11 @@ export default function EnquiryListPage() {
     if (searchTerm) {
       const filtered = enquiries.filter(
         (enquiry) =>
-          enquiry.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          enquiry.parent_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          enquiry.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          enquiry.phone_number.includes(searchTerm) ||
-          enquiry.class.toLowerCase().includes(searchTerm.toLowerCase()),
+          enquiry.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          enquiry.parent_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          enquiry.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          enquiry.phone_number?.includes(searchTerm) ||
+          enquiry.class?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
       setFilteredEnquiries(filtered)
     } else {
@@ -108,18 +116,23 @@ export default function EnquiryListPage() {
   }
 
   const exportToCSV = () => {
+    if (filteredEnquiries.length === 0) {
+      alert("No data to export")
+      return
+    }
+
     const headers = ["Student Name", "Parent Name", "Location", "Phone", "Class", "Excitement", "Date Submitted"]
     const csvContent = [
       headers.join(","),
       ...filteredEnquiries.map((enquiry) =>
         [
-          enquiry.student_name,
-          enquiry.parent_name,
-          enquiry.location,
-          enquiry.phone_number,
-          enquiry.class,
-          enquiry.excitement || "",
-          new Date(enquiry.date_submitted).toLocaleDateString(),
+          `"${enquiry.student_name || ""}"`,
+          `"${enquiry.parent_name || ""}"`,
+          `"${enquiry.location || ""}"`,
+          `"${enquiry.phone_number || ""}"`,
+          `"${enquiry.class || ""}"`,
+          `"${enquiry.excitement || ""}"`,
+          `"${enquiry.date_submitted ? new Date(enquiry.date_submitted).toLocaleDateString() : ""}"`,
         ].join(","),
       ),
     ].join("\n")
@@ -128,19 +141,23 @@ export default function EnquiryListPage() {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = "enquiries.csv"
+    a.download = `enquiries-${new Date().toISOString().split("T")[0]}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    try {
+      return new Date(dateString).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return "Invalid Date"
+    }
   }
 
   const getExcitementBadge = (excited?: string) => {
@@ -159,12 +176,12 @@ export default function EnquiryListPage() {
     )
   }
 
-  if (isLoading && !authChecked) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authentication...</p>
+          <p className="text-gray-600">Loading enquiries...</p>
         </div>
       </div>
     )
@@ -182,7 +199,9 @@ export default function EnquiryListPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-800">Little Scholars Admin</h1>
-                <p className="text-sm text-gray-600">Enquiry Management Dashboard</p>
+                <p className="text-sm text-gray-600">
+                  {userEmail ? `Welcome, ${userEmail}` : "Enquiry Management Dashboard"}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -212,7 +231,12 @@ export default function EnquiryListPage() {
       <div className="container mx-auto px-4 py-8">
         {error && (
           <Alert className="mb-6 border-red-200 bg-red-50">
-            <AlertDescription className="text-red-700">{error}</AlertDescription>
+            <AlertDescription className="text-red-700">
+              {error}
+              <Button onClick={handleRefresh} variant="outline" size="sm" className="ml-4 bg-transparent">
+                Try Again
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
 
@@ -236,7 +260,11 @@ export default function EnquiryListPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">This Month</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {enquiries.filter((e) => new Date(e.date_submitted).getMonth() === new Date().getMonth()).length}
+                    {
+                      enquiries.filter(
+                        (e) => e.date_submitted && new Date(e.date_submitted).getMonth() === new Date().getMonth(),
+                      ).length
+                    }
                   </p>
                 </div>
                 <Calendar className="w-8 h-8 text-green-600" />
@@ -288,22 +316,18 @@ export default function EnquiryListPage() {
         {/* Enquiries Table */}
         <Card>
           <CardContent className="p-0">
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading enquiries...</p>
-              </div>
-            ) : filteredEnquiries.length === 0 ? (
+            {filteredEnquiries.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No enquiries found</h3>
                 <p className="text-gray-500">
                   {searchTerm ? "Try adjusting your search terms" : "No enquiries have been submitted yet"}
                 </p>
-                <Button onClick={handleRefresh} variant="outline" className="mt-4 bg-transparent">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Data
-                </Button>
+                {enquiries.length > 0 && (
+                  <Button onClick={() => setSearchTerm("")} className="mt-4">
+                    Clear Search
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -341,24 +365,24 @@ export default function EnquiryListPage() {
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{enquiry.student_name}</div>
-                            <div className="text-sm text-gray-500">{enquiry.location}</div>
+                            <div className="text-sm font-medium text-gray-900">{enquiry.student_name || "N/A"}</div>
+                            <div className="text-sm text-gray-500">{enquiry.location || "N/A"}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{enquiry.parent_name}</div>
+                          <div className="text-sm text-gray-900">{enquiry.parent_name || "N/A"}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{enquiry.phone_number}</div>
+                          <div className="text-sm text-gray-900">{enquiry.phone_number || "N/A"}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant="outline" className="capitalize">
-                            {enquiry.class}
+                            {enquiry.class || "N/A"}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">{getExcitementBadge(enquiry.excitement)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(enquiry.date_submitted)}
+                          {enquiry.date_submitted ? formatDate(enquiry.date_submitted) : "N/A"}
                         </td>
                       </motion.tr>
                     ))}

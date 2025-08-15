@@ -52,7 +52,7 @@ export const getCurrentSession = async () => {
 
   if (error) {
     console.error("Session error:", error)
-    throw error
+    return null // Return null instead of throwing
   }
 
   return session
@@ -68,7 +68,7 @@ export const getCurrentUser = async () => {
 
   if (error) {
     console.error("User error:", error)
-    throw error
+    return null
   }
 
   return user
@@ -125,31 +125,28 @@ export const getEnquiries = async () => {
   try {
     const supabase = getSupabaseClient()
 
-    // First check if user is authenticated
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
-
-    if (sessionError) {
-      console.error("Session error:", sessionError)
-      throw new Error("Authentication error")
-    }
-
+    // Check if user is authenticated
+    const session = await getCurrentSession()
     if (!session) {
       throw new Error("User not authenticated")
     }
 
-    console.log("Fetching enquiries for authenticated user:", session.user.email)
+    console.log("Fetching enquiries for authenticated user...")
 
     const { data, error } = await supabase.from("enquiries").select("*").order("date_submitted", { ascending: false })
 
     if (error) {
       console.error("Fetch enquiries error:", error)
+
+      // Handle specific RLS errors
+      if (error.message.includes("row-level security")) {
+        throw new Error("Permission denied. Please contact administrator.")
+      }
+
       throw new Error(`Failed to fetch enquiries: ${error.message}`)
     }
 
-    console.log("Fetched enquiries:", data)
+    console.log("Successfully fetched enquiries:", data)
     return data || []
   } catch (error) {
     console.error("getEnquiries error:", error)
