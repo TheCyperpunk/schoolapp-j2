@@ -109,3 +109,22 @@ html {
 .shadow-custom-lg {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
+
+/* Ensure forms are properly contained on mobile */
+@media (max-width: 768px) {
+  .hero-form-container {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+}
+
+/* Improve mobile form spacing */
+@media (max-width: 640px) {
+  .enquiry-form {
+    padding: 1rem;
+  }
+  
+  .enquiry-form .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+}

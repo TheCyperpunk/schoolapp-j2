@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import EnquiryForm from "@/components/enquiry-form"
 
@@ -43,7 +43,7 @@ export default function HeroSection() {
   }
 
   return (
-    <section id="home" className="relative h-screen overflow-hidden mt-16">
+    <section id="home" className="relative min-h-screen lg:h-screen overflow-hidden mt-16">
       {/* Background Carousel */}
       <div className="absolute inset-0">
         <AnimatePresence mode="wait">
@@ -84,9 +84,9 @@ export default function HeroSection() {
       </Button>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center">
+      <div className="relative z-10 h-full flex items-center py-8">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 items-start lg:items-center min-h-[calc(100vh-8rem)]">
             {/* Hero Text */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -123,9 +123,11 @@ export default function HeroSection() {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
-              className="lg:justify-self-end"
+              className="lg:justify-self-end w-full lg:max-w-none"
             >
-              <EnquiryForm />
+              <div className="lg:sticky lg:top-24">
+                <EnquiryForm />
+              </div>
             </motion.div>
           </div>
         </div>

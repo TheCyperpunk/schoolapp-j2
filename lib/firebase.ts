@@ -10,20 +10,29 @@ interface EnquiryData {
   excited: string
 }
 
-// Mock Firebase functions for demonstration
+// Updated Firebase functions for demonstration
 export const submitEnquiry = async (data: EnquiryData) => {
   // Simulate API call delay
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
-  // In a real app, this would submit to Firebase Firestore
-  console.log("Enquiry submitted:", data)
+  // Create enquiry object with ID and timestamp
+  const enquiry = {
+    id: Date.now().toString(),
+    ...data,
+    dateSubmitted: new Date().toISOString(),
+  }
 
-  // For demo purposes, we'll just log the data
-  // In production, you would use:
-  // import { collection, addDoc } from 'firebase/firestore'
-  // import { db } from './firebase-config'
-  // await addDoc(collection(db, 'enquiries'), { ...data, timestamp: new Date() })
+  // Get existing enquiries from localStorage
+  const existingEnquiries = localStorage.getItem("enquiries")
+  const enquiries = existingEnquiries ? JSON.parse(existingEnquiries) : []
 
+  // Add new enquiry
+  enquiries.push(enquiry)
+
+  // Store back to localStorage
+  localStorage.setItem("enquiries", JSON.stringify(enquiries))
+
+  console.log("Enquiry submitted:", enquiry)
   return { success: true }
 }
 

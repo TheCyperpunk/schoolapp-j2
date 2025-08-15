@@ -13,7 +13,7 @@ export default function Header() {
     { icon: BookOpen, label: "About", href: "#about" },
     { icon: Phone, label: "Call", href: "tel:+919876543210" },
     { icon: MessageCircle, label: "WhatsApp", href: "https://wa.me/919876543210" },
-    { icon: User, label: "Profile", href: "#profile" },
+    { icon: User, label: "Profile", href: "/login" },
   ]
 
   return (
