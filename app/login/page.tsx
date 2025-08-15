@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -29,24 +30,29 @@ export default function LoginPage() {
         const session = await getCurrentSession()
         if (session) {
           router.push("/enquiry-list")
+          return
         }
       } catch (error) {
         console.error("Session check error:", error)
+      } finally {
+        setIsCheckingAuth(false)
       }
     }
 
     checkSession()
 
     // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = onAuthStateChange((event, session) => {
+    const authListener = onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
         router.push("/enquiry-list")
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (authListener?.data?.subscription) {
+        authListener.data.subscription.unsubscribe()
+      }
+    }
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,6 +68,17 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

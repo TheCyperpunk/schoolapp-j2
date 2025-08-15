@@ -12,8 +12,15 @@ export interface Enquiry {
   date_submitted: string
 }
 
-// Get Supabase client
-export const getSupabaseClient = () => createClient()
+// Get Supabase client with error handling
+export const getSupabaseClient = () => {
+  try {
+    return createClient()
+  } catch (error) {
+    console.error("Failed to create Supabase client:", error)
+    throw new Error("Database connection failed. Please check your configuration.")
+  }
+}
 
 // Auth functions
 export const signInWithEmail = async (email: string, password: string) => {
@@ -43,35 +50,45 @@ export const signOut = async () => {
 }
 
 export const getCurrentSession = async () => {
-  const supabase = getSupabaseClient()
+  try {
+    const supabase = getSupabaseClient()
 
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession()
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
 
-  if (error) {
-    console.error("Session error:", error)
-    return null // Return null instead of throwing
+    if (error) {
+      console.error("Session error:", error)
+      return null
+    }
+
+    return session
+  } catch (error) {
+    console.error("Failed to get session:", error)
+    return null
   }
-
-  return session
 }
 
 export const getCurrentUser = async () => {
-  const supabase = getSupabaseClient()
+  try {
+    const supabase = getSupabaseClient()
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
-  if (error) {
-    console.error("User error:", error)
+    if (error) {
+      console.error("User error:", error)
+      return null
+    }
+
+    return user
+  } catch (error) {
+    console.error("Failed to get user:", error)
     return null
   }
-
-  return user
 }
 
 // Database functions
@@ -156,7 +173,18 @@ export const getEnquiries = async () => {
 
 // Auth state change listener
 export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-  const supabase = getSupabaseClient()
-
-  return supabase.auth.onAuthStateChange(callback)
+  try {
+    const supabase = getSupabaseClient()
+    return supabase.auth.onAuthStateChange(callback)
+  } catch (error) {
+    console.error("Failed to set up auth state listener:", error)
+    // Return a dummy subscription that can be safely unsubscribed
+    return {
+      data: {
+        subscription: {
+          unsubscribe: () => {},
+        },
+      },
+    }
+  }
 }
